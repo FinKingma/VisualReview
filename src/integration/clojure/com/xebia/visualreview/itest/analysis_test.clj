@@ -37,7 +37,7 @@
 
 (defn setup-project []
   (api/put-project! {:name project-name})
-  (post-run-with-screenshots :chess mock/upload-chess-image-1 :tapir mock/upload-tapir :zd mock/upload-zd-image-1 :zdp10 mock/upload-zd-image-1-p10))
+  (post-run-with-screenshots :chess mock/upload-chess-image-1 :tapir mock/upload-tapir :line mock/upload-line-image-1 :zd mock/upload-zd-image-1 :zdp10 mock/upload-zd-image-1-p10 :qr mock/upload-qr-image-1 :qraa mock/upload-qr-image-1-aa :qraa2 mock/upload-qr-image-1-aa2))
 
 (defn- content-type [response]
   (get-in response [:headers "Content-Type"]))
@@ -67,7 +67,11 @@
         1 1 201 "accepted"
         1 2 201 "accepted"
         1 3 201 "accepted"
-        1 4 201 "accepted")))
+        1 4 201 "accepted"
+        1 5 201 "accepted"
+        1 5 201 "accepted"
+        1 6 201 "accepted"
+        1 7 201 "accepted")))
 
   (testing "New run with different tapir image"
     (let [run-id (post-run-with-screenshots :chess mock/upload-chess-image-1 :tapir mock/upload-tapir-hat)
@@ -107,4 +111,19 @@
     (let [run-id (post-run-with-screenshots :zdp10 mock/upload-zd-image-2-p10)
           [zdp10-diff] (-> (api/get-analysis run-id) :body :diffs)]
       (is (= "accepted" (:status zdp10-diff)) "The zd diff is automatically accepted")))
+
+  (testing "No anti aliasing will fail comparison if image has a slight blur"
+    (let [run-id (post-run-with-screenshots :qr mock/upload-qr-image-2)
+          [qr-diff] (-> (api/get-analysis run-id) :body :diffs)]
+      (is (= "pending" (:status qr-diff)) "The qr diff is pending")))
+
+  (testing "Anti aliasing will pass comparison if image has a slight blur"
+    (let [run-id (post-run-with-screenshots :qr mock/upload-qr-image-2-aa)
+          [qraa-diff] (-> (api/get-analysis run-id) :body :diffs)]
+      (is (= "accepted" (:status qraa-diff)) "The zd diff is automatically accepted")))
+
+  (testing "Anti aliasing will still fail comparison if image has a diff"
+    (let [run-id (post-run-with-screenshots :qr mock/upload-qr-image-2-aa2)
+          [qraa2-diff] (-> (api/get-analysis run-id) :body :diffs)]
+      (is (= "pending" (:status qraa2-diff)) "The qr diff is pending")))
   )
