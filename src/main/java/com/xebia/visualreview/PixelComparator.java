@@ -132,25 +132,13 @@ public class PixelComparator {
             boolean hasMask =  (maskInfo != null) ;
             BufferedImage maskImage = generateMask(maskInfo,diffWidth,diffHeight);
 
-            System.out.println("Image is " + diffWidth + "x" + diffHeight);
-
-            int r1 = (beforeData[355 * beforeWidth + 878])&0xFF;
-            int g1 = (beforeData[355 * beforeWidth + 878]>>8)&0xFF;
-            int b1 = (beforeData[355 * beforeWidth + 878]>>16)&0xFF;
-
-            int r2 = (afterData[355 * afterWidth + 878])&0xFF;
-            int g2 = (afterData[355 * afterWidth + 878]>>8)&0xFF;
-            int b2 = (afterData[355 * afterWidth + 878]>>16)&0xFF;
-
-            System.out.println("PixelDiff at " + 878 + "x" + 355 + " | originalColor R: " + r1 + " - B: " + b1 + " - G: " + g1 + " | newPixel R: " + r2 + " - B: " + b2 + " - G: " + g2);
-
             for (int y = 0; y < diffHeight; y++) {
                 for (int x = 0; x < diffWidth; x++) {
                     if (maskImage.getRGB(x,y) != DIFFCOLOUR) {
 
                       if (x >= minX || y >= minY || beforeData[y * beforeWidth + x] != afterData[y * afterWidth + x]) {
                         if (hasDifference(beforeData[y * beforeWidth + x], afterData[y * afterWidth + x],precision)) {
-                            if (antialiasing && !hasDiffAntiAliasing(afterData[y * afterWidth + x], beforeData, y, x, beforeWidth, precision)) {
+                            if (antialiasing && !hasDiffAntiAliasing(afterData[y * afterWidth + x], beforeData, y, x, beforeWidth)) {
                               //ALL OK!
                             } else {
                               diffData[y * diffWidth + x] = DIFFCOLOUR;
@@ -165,13 +153,8 @@ public class PixelComparator {
             BufferedImage diffImage = new BufferedImage(diffWidth, diffHeight, BufferedImage.TYPE_INT_ARGB);
             diffImage.setRGB(0, 0, diffWidth, diffHeight, diffData, 0, diffWidth);
 
-            System.out.println(
-              "differentPixels: "+differentPixels);
-
             DiffReport report = new DiffReport(beforeFile, afterFile, diffImage, differentPixels);
             if (hasMask){
-              System.out.println(
-                "test: ");
                 report.setMaskImage(maskImage);
             }
             return report;
@@ -181,10 +164,10 @@ public class PixelComparator {
         }
     }
 
-    private static boolean hasDiffAntiAliasing(int newPixel, int[] baseImage, int y, int x, int diffWidth, int precision) {
+    private static boolean hasDiffAntiAliasing(int newPixel, int[] baseImage, int y, int x, int diffWidth) {
       int distance = 1;
 
-      int sameSiblings = 0;
+      int similarSiblings = 0;
       int highContrastSiblings = 0;
       int diffHueSiblings = 0;
 
@@ -197,8 +180,8 @@ public class PixelComparator {
             int newX = x+j;
             int targetPixel = baseImage[newY * diffWidth + newX];
 
-            if (!hasDifference(targetPixel, newPixel,70)) {
-                sameSiblings++;
+            if (!hasDifference(targetPixel, newPixel,127)) {
+                similarSiblings++;
             }
 
             if (hasHighContrast(targetPixel, newPixel)) {
@@ -212,12 +195,7 @@ public class PixelComparator {
         }
       }
 
-      System.out.println(
-        "sameSiblings: "+sameSiblings +
-        " | highContrastSiblings: " + highContrastSiblings +
-        " | diffHueSiblings: " + diffHueSiblings);
-
-      if (sameSiblings < 2) {
+      if (similarSiblings < 3) {
         return true;
       } else if (highContrastSiblings > 1 || diffHueSiblings > 1) {
         return true;
@@ -238,46 +216,30 @@ public class PixelComparator {
         if (data1 == data2) {
             return false;
         }
+        Pixel pixel1 = getRGB(data1);
+        Pixel pixel2 = getRGB(data2);
 
-        int r1 = (data1)&0xFF;
-        int g1 = (data1>>8)&0xFF;
-        int b1 = (data1>>16)&0xFF;
-
-        int r2 = (data2)&0xFF;
-        int g2 = (data2>>8)&0xFF;
-        int b2 = (data2>>16)&0xFF;
-
-        return (Math.abs(r1-r2) > maxDifference ||
-            Math.abs(g1-g2) > maxDifference ||
-            Math.abs(b1-b2) > maxDifference);
+        return (Math.abs(pixel1.red-pixel2.red) > maxDifference ||
+            Math.abs(pixel1.green-pixel2.green) > maxDifference ||
+            Math.abs(pixel1.blue-pixel2.blue) > maxDifference);
     }
 
     private static boolean hasHighContrast(int data1, int data2) {
-        int r1 = (data1)&0xFF;
-        int g1 = (data1>>8)&0xFF;
-        int b1 = (data1>>16)&0xFF;
-        double brightness1 = getBrightness(r1,g1,b1);
+      Pixel pixel1 = getRGB(data1);
+      Pixel pixel2 = getRGB(data2);
+      double brightness1 = getBrightness(pixel1.red,pixel1.green,pixel1.blue);
+      double brightness2 = getBrightness(pixel2.red,pixel2.green,pixel2.blue);
 
-        int r2 = (data2)&0xFF;
-        int g2 = (data2>>8)&0xFF;
-        int b2 = (data2>>16)&0xFF;
-        double brightness2 = getBrightness(r2,g2,b2);
-
-        return Math.abs(brightness1 - brightness2) > 200;
+      return Math.abs(brightness1 - brightness2) > 200;
     }
 
     private static boolean hasDiffHue(int data1, int data2) {
-        int r1 = (data1)&0xFF;
-        int g1 = (data1>>8)&0xFF;
-        int b1 = (data1>>16)&0xFF;
-        double hue1 = getHue(r1, g1, b1);
+      Pixel pixel1 = getRGB(data1);
+      Pixel pixel2 = getRGB(data2);
+      double hue1 = getHue(pixel1.red,pixel1.green,pixel1.blue);
+      double hue2 = getHue(pixel2.red,pixel2.green,pixel2.blue);
 
-        int r2 = (data2)&0xFF;
-        int g2 = (data2>>8)&0xFF;
-        int b2 = (data2>>16)&0xFF;
-        double hue2 = getHue(r2, g2, b2);
-
-        return (Math.abs(hue1 - hue2) > 0.3);
+      return (Math.abs(hue1 - hue2) > 0.7);
     }
 
     private static double getBrightness(int r,int g,int b) {
@@ -339,7 +301,7 @@ public class PixelComparator {
                 JSONObject json = new JSONObject(compareSettings);
                 if (json.has(name)) {
                     try {
-                        value = (json.getString(name) == "true");
+                        value = json.getBoolean(name);
                     } catch (Exception e) {
                         throw new Exception(name + " has invalid value.\n" + e);
                     }
@@ -358,5 +320,25 @@ public class PixelComparator {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static Pixel getRGB(int data) {
+      int b1 = (data)&0xFF;
+      int g1 = (data>>8)&0xFF;
+      int r1 = (data>>16)&0xFF;
+
+      Pixel pixel = new Pixel();
+
+      pixel.red = r1;
+      pixel.green = g1;
+      pixel.blue = b1;
+
+      return pixel;
+    }
+
+    private static class Pixel {
+      int red;
+      int green;
+      int blue;
     }
 }

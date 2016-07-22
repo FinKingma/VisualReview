@@ -121,3 +121,7 @@
   (api/upload-screenshot! run-id {:file "aliased_1.png" :meta meta :properties props :screenshotName "mountain-AA2" :compareSettings compare-settings-aa}))
 (defn upload-qr-image-2-aa2 [run-id meta props]
   (api/upload-screenshot! run-id {:file "aliased_4.png" :meta meta :properties props :screenshotName "mountain-AA2" :compareSettings compare-settings-aa}))
+(defn upload-line-image-1 [run-id meta props]
+  (api/upload-screenshot! run-id {:file "noticeSmallDiff_1.png" :meta meta :properties props :screenshotName "Line" :compareSettings compare-settings}))
+(defn upload-line-image-2 [run-id meta props]
+  (api/upload-screenshot! run-id {:file "noticeSmallDiff_2.png" :meta meta :properties props :screenshotName "Line" :compareSettings compare-settings}))

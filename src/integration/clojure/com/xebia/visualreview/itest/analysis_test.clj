@@ -102,6 +102,11 @@
       (is (= "pending" (:status chess-diff)) "The chess diff is pending")
       (is (= (:chess (@image-ids (dec run-id))) (-> chess-diff :before :id)) "The chess image is compared to the previous run")))
 
+  (testing "Small difference will fail comparison"
+    (let [run-id (post-run-with-screenshots :line mock/upload-line-image-2)
+          [line-diff] (-> (api/get-analysis run-id) :body :diffs)]
+      (is (= "pending" (:status line-diff)) "The line diff is pending")))
+
   (testing "No precision will fail comparison with unseen pixel difference"
     (let [run-id (post-run-with-screenshots :zd mock/upload-zd-image-2)
           [zd-diff] (-> (api/get-analysis run-id) :body :diffs)]
